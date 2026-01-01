@@ -6,6 +6,15 @@ import sqlite3
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import time
+import sys
+
+# Ensure backend dir is on PYTHONPATH for production (e.g., Render)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+
+# Ensure monitoring folder exists
+os.makedirs(os.path.join(BASE_DIR, "monitoring"), exist_ok=True)
+
 from monitoring.logger import init_db, log_prediction, DB_PATH
 
 init_db()
@@ -21,7 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "student_model.pkl")
 
 model = joblib.load(MODEL_PATH)
