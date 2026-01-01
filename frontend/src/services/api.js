@@ -1,4 +1,6 @@
-const API_URL = "https://student-performance-api-14pb.onrender.com/predict";
+export const API_BASE = "https://student-performance-api-14pb.onrender.com";
+
+const API_URL = `${API_BASE}/predict`;
 
 export async function predictScore(formData) {
   const response = await fetch(API_URL, {

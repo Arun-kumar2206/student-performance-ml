@@ -2,8 +2,13 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
 import pandas as pd
+import sqlite3
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import time
+from monitoring.logger import init_db, log_prediction, DB_PATH
+
+init_db()
 
 app = FastAPI(title="Student Performance Prediction API")
 
@@ -53,8 +58,39 @@ def home():
 @app.post("/predict")
 def predict(data: StudentInput):
     input_df = pd.DataFrame([data.dict()])
+
+    start = time.time()
+
     prediction = model.predict(input_df)[0]
+
+    latency = (time.time() - start) * 1000
+
+    log_prediction(
+        input_data=data.dict(),
+        prediction=float(prediction),
+        latency_ms=latency
+    )
 
     return {
         "predicted_exam_score": round(float(prediction), 2)
+    }
+
+
+@app.get("/monitoring/summary")
+def monitoring_summary():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        df = pd.read_sql("SELECT * FROM predictions", conn)
+        conn.close()
+    except Exception:
+        return {"message": "No data yet"}
+
+    if df.empty:
+        return {"message": "No data yet"}
+
+    return {
+        "total_predictions": len(df),
+        "avg_prediction": round(df["prediction"].mean(), 2),
+        "avg_latency_ms": round(df["latency_ms"].mean(), 2),
+        "max_latency_ms": round(df["latency_ms"].max(), 2)
     }
